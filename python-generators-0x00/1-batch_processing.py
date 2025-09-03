@@ -20,11 +20,11 @@ def stream_users_in_batches(batch_size):
             cursor = connection.cursor()
             cursor.execute("SELECT user_id, name, email, age FROM user_data;")
 
-            while True:
+            while True:  
                 batch = cursor.fetchmany(batch_size)
                 if not batch:
                     break
-                yield batch 
+                yield batch  
 
             cursor.close()
             connection.close()
@@ -40,7 +40,7 @@ def batch_processing(batch_size):
     :param batch_size: Number of rows per batch
     :yield: Users older than 25
     """
-    for batch in stream_users_in_batches(batch_size):
-        for user in batch: 
-            if int(user[3]) > 25:  
+    for batch in stream_users_in_batches(batch_size):  
+        for user in batch:  
+            if int(user[3]) > 25:
                 yield user
