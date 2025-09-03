@@ -38,9 +38,9 @@ def batch_processing(batch_size):
     Processes each batch of users and filters users over age 25.
     Uses generator for batch streaming.
     :param batch_size: Number of rows per batch
-    :yield: Users older than 25
+    :return: Users older than 25
     """
     for batch in stream_users_in_batches(batch_size):  
         for user in batch:  
             if int(user[3]) > 25:
-                yield user
+                return user
