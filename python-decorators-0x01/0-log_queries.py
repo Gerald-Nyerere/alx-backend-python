@@ -25,6 +25,5 @@ def fetch_all_users(query):
 
 
 #### fetch users while logging the query
-if __name__ == "__main__":
-    users = fetch_all_users(query="SELECT * FROM users")
-    print(users)
+users = fetch_all_users(query="SELECT * FROM users")
+print(users)
