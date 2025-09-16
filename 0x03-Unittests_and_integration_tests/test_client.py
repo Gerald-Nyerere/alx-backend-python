@@ -96,14 +96,12 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Patch requests.get and mock API responses using fixtures."""
+        """Start patcher and mock requests.get responses"""
         cls.get_patcher = patch("requests.get")
         mock_get = cls.get_patcher.start()
 
         def side_effect(url):
-            print(f"[DEBUG] requests.get called with: {url}")  # Debugging
             mock_response = Mock()
-            # Match URLs flexibly to avoid trailing slash issues
             if "orgs/google/repos" in url:
                 mock_response.json.return_value = cls.repos_payload
             elif "orgs/google" in url:
@@ -116,16 +114,16 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Stop patcher."""
+        """Stop patcher"""
         cls.get_patcher.stop()
 
     def test_public_repos(self):
-        """Test that public_repos returns expected repos list"""
+        """Test public_repos returns expected repo names"""
         client = GithubOrgClient("google")
         self.assertEqual(client.public_repos(), self.expected_repos)
 
     def test_public_repos_with_license(self):
-        """Test that public_repos correctly filters by license"""
+        """Test public_repos filters repos by license"""
         client = GithubOrgClient("google")
         self.assertEqual(
             client.public_repos(license="apache-2.0"),
