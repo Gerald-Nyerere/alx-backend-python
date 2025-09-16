@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import unittest
 from unittest.mock import patch, PropertyMock, Mock
-from parameterized import parameterized, parameterized_class
+from parameterized import parameterized_class
+from parameterized import parameterized
 from client import GithubOrgClient
 
 # --- Fixtures (from fixtures.py) ---
