@@ -82,9 +82,7 @@ class TestGithubOrgClient(unittest.TestCase):
 
 
 # ----------------- INTEGRATION TESTS -----------------
-def test_debug_fixture_injection(self):
-    print("Injected org_payload:", self.org_payload)
-    
+
 @parameterized_class([
     {
         "org_payload": org_payload,
