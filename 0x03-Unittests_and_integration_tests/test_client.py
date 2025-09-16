@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import unittest
-from unittest.mock import patch, PropertyMock, Mock
+from unittest.mock import patch, PropertyMock
 from parameterized import parameterized_class
 from parameterized import parameterized
 from client import GithubOrgClient
+from fixtures import TEST_PAYLOAD
 
 # --- Fixtures (from fixtures.py) ---
 org_payload = {
@@ -82,55 +83,57 @@ class TestGithubOrgClient(unittest.TestCase):
 
 
 # ----------------- INTEGRATION TESTS -----------------
-
 @parameterized_class([
     {
-        "org_payload": org_payload,
-        "repos_payload": repos_payload,
-        "expected_repos": expected_repos,
-        "apache2_repos": apache2_repos,
+        'org_payload': TEST_PAYLOAD[0][0],
+        'repos_payload': TEST_PAYLOAD[0][1],
+        'expected_repos': TEST_PAYLOAD[0][2],
+        'apache2_repos': TEST_PAYLOAD[0][3],
     }
 ])
 class TestIntegrationGithubOrgClient(unittest.TestCase):
-    """Integration tests for GithubOrgClient.public_repos"""
+    """Integration test for GithubOrgClient.public_repos method"""
 
     @classmethod
     def setUpClass(cls):
-        """Start patcher and mock requests.get responses"""
-        cls.get_patcher = patch("requests.get")
+        """Set up class method to mock requests.get"""
+        # Create a dictionary to map URLs to their corresponding responses
+        cls.get_patcher = patch('requests.get')
         mock_get = cls.get_patcher.start()
-
+        
+        # Define side_effect function to return different responses based on URL
         def side_effect(url):
-            mock_response = Mock()
-            if "orgs/google/repos" in url:
-                mock_response.json.return_value = cls.repos_payload
-            elif "orgs/google" in url:
-                mock_response.json.return_value = cls.org_payload
-            else:
-                mock_response.json.return_value = {}
-            return mock_response
-
+            class MockResponse:
+                @staticmethod
+                def json():
+                    if 'orgs/' in url and '/repos' not in url:
+                        return cls.org_payload
+                    elif 'repos' in url:
+                        return cls.repos_payload
+                    return {}
+            
+            return MockResponse()
+        
         mock_get.side_effect = side_effect
 
     @classmethod
     def tearDownClass(cls):
-        """Stop patcher"""
+        """Tear down class method to stop the patcher"""
         cls.get_patcher.stop()
 
     def test_public_repos(self):
-        """Test public_repos returns expected repo names"""
-        client = GithubOrgClient("google")
-        result = client.public_repos()
-        self.assertEqual(result, self.expected_repos)
-        return "OK"  # Add this return statement
+        """Test public_repos method with integration"""
+        client = GithubOrgClient("test-org")
+        repos = client.public_repos()
+        
+        self.assertEqual(repos, self.expected_repos)
 
     def test_public_repos_with_license(self):
-        """Test public_repos filters repos by license"""
-        client = GithubOrgClient("google")
-        result = client.public_repos(license="apache-2.0")
-        self.assertEqual(result, self.apache2_repos)
-        return "OK"  # Add this return statement
-
+        """Test public_repos method with license filter"""
+        client = GithubOrgClient("test-org")
+        repos = client.public_repos(license="apache-2.0")
+        
+        self.assertEqual(repos, self.apache2_repos)
 
 if __name__ == "__main__":
     unittest.main()
