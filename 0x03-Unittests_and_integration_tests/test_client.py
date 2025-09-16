@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Test module for GithubOrgClient class - unit and integration tests"""
+
 import unittest
 from unittest.mock import patch, PropertyMock
 from parameterized import parameterized_class
@@ -197,6 +199,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         self.assertEqual(self.mock_get_json.call_count, 2)
 
     def test_public_repos_with_license(self):
+        """Test public_repos method with license filter"""
         client = GithubOrgClient("google")
         repos = client.public_repos(license="apache-2.0")
 
