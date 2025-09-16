@@ -1,4 +1,3 @@
-# client.py
 from utils import get_json
 
 class GithubOrgClient:
@@ -12,3 +11,7 @@ class GithubOrgClient:
         """Fetch org data from GitHub"""
         url = f"https://api.github.com/orgs/{self.org_name}"
         return get_json(url)
+    
+    @property
+    def _public_repos_url(self):
+        return self.org.get("repos_url")
