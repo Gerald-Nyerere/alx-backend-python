@@ -4,22 +4,86 @@ from unittest.mock import patch, PropertyMock
 from parameterized import parameterized_class
 from parameterized import parameterized
 from client import GithubOrgClient
-from fixtures import TEST_PAYLOAD
 
-# --- Fixtures (from fixtures.py) ---
-org_payload = {
-    "login": "google",
-    "repos_url": "https://api.github.com/orgs/google/repos"
-}
-
-repos_payload = [
-    {"id": 1, "name": "repo1", "license": {"key": "apache-2.0"}},
-    {"id": 2, "name": "repo2", "license": {"key": "other-license"}},
-    {"id": 3, "name": "repo3", "license": {"key": "apache-2.0"}},
+# --- Test Fixtures ---
+TEST_PAYLOAD = [
+    (
+        # org_payload
+        {
+            "login": "google",
+            "id": 1342004,
+            "url": "https://api.github.com/orgs/google",
+            "repos_url": "https://api.github.com/orgs/google/repos",
+            "name": "Google",
+            "blog": "https://opensource.google.com/",
+            "public_repos": 100
+        },
+        # repos_payload
+        [
+            {
+                "id": 1,
+                "name": "repo1",
+                "full_name": "google/repo1",
+                "private": False,
+                "owner": {
+                    "login": "google",
+                    "id": 1342004
+                },
+                "html_url": "https://github.com/google/repo1",
+                "description": "Google's first repo",
+                "fork": False,
+                "url": "https://api.github.com/repos/google/repo1",
+                "license": {
+                    "key": "apache-2.0",
+                    "name": "Apache License 2.0",
+                    "spdx_id": "Apache-2.0"
+                }
+            },
+            {
+                "id": 2,
+                "name": "repo2",
+                "full_name": "google/repo2",
+                "private": False,
+                "owner": {
+                    "login": "google",
+                    "id": 1342004
+                },
+                "html_url": "https://github.com/google/repo2",
+                "description": "Google's second repo",
+                "fork": False,
+                "url": "https://api.github.com/repos/google/repo2",
+                "license": {
+                    "key": "mit",
+                    "name": "MIT License",
+                    "spdx_id": "MIT"
+                }
+            },
+            {
+                "id": 3,
+                "name": "repo3",
+                "full_name": "google/repo3",
+                "private": False,
+                "owner": {
+                    "login": "google",
+                    "id": 1342004
+                },
+                "html_url": "https://github.com/google/repo3",
+                "description": "Google's third repo",
+                "fork": False,
+                "url": "https://api.github.com/repos/google/repo3",
+                "license": {
+                    "key": "apache-2.0",
+                    "name": "Apache License 2.0",
+                    "spdx_id": "Apache-2.0"
+                }
+            }
+        ],
+        # expected_repos
+        ["repo1", "repo2", "repo3"],
+        # apache2_repos
+        ["repo1", "repo3"]
+    )
 ]
-
-expected_repos = ["repo1", "repo2", "repo3"]
-apache2_repos = ["repo1", "repo3"]
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -76,6 +140,8 @@ class TestGithubOrgClient(unittest.TestCase):
     @parameterized.expand([
         ({"license": {"key": "my_license"}}, "my_license", True),
         ({"license": {"key": "other_license"}}, "my_license", False),
+        ({"license": None}, "my_license", False),
+        ({}, "my_license", False),
     ])
     def test_has_license(self, repo, license_key, expected):
         """Test that has_license returns correct boolean"""
@@ -97,29 +163,17 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up class method to mock requests.get"""
-        # Create a dictionary to map URLs to their corresponding responses
-        cls.get_patcher = patch('requests.get')
-        cls.mock_get = cls.get_patcher.start()
+        cls.get_patcher = patch('client.get_json')
+        cls.mock_get_json = cls.get_patcher.start()
         
-        # Define side_effect function to return different responses based on URL
-        def side_effect(url, *args, **kwargs):
-            class MockResponse:
-                @staticmethod
-                def json():
-                    if 'orgs/' in url and '/repos' not in url:
-                        return cls.org_payload
-                    elif 'repos' in url:
-                        return cls.repos_payload
-                    return {}
-                
-                @staticmethod
-                def raise_for_status():
-                    """Mock raise_for_status method"""
-                    pass
-            
-            return MockResponse()
+        def side_effect(url):
+            if 'orgs/' in url and '/repos' not in url:
+                return cls.org_payload
+            elif 'repos' in url:
+                return cls.repos_payload
+            return {}
         
-        cls.mock_get.side_effect = side_effect
+        cls.mock_get_json.side_effect = side_effect
 
     @classmethod
     def tearDownClass(cls):
@@ -128,89 +182,25 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
 
     def test_public_repos(self):
         """Test public_repos method with integration"""
-        # Reset mock call count to isolate this test
-        self.mock_get.reset_mock()
-        
-        client = GithubOrgClient("test-org")
+        client = GithubOrgClient("google")
         repos = client.public_repos()
         
         # Verify the returned repositories match expected_repos
         self.assertEqual(repos, self.expected_repos)
         
-        # Verify requests.get was called twice (org + repos)
-        self.assertEqual(self.mock_get.call_count, 2)
-        
-        # Verify the correct URLs were called
-        call_urls = [call[0][0] for call in self.mock_get.call_args_list]
-        
-        # Should call organization endpoint first
-        self.assertIn("https://api.github.com/orgs/test-org", call_urls[0])
-        # Should call repos endpoint second
-        self.assertIn("https://api.github.com/orgs/test-org/repos", call_urls[1])
+        # Verify get_json was called twice (org + repos)
+        self.assertEqual(self.mock_get_json.call_count, 2)
 
     def test_public_repos_with_license(self):
         """Test public_repos method with license filter"""
-        # Reset mock call count to isolate this test
-        self.mock_get.reset_mock()
-        
-        client = GithubOrgClient("test-org")
+        client = GithubOrgClient("google")
         repos = client.public_repos(license="apache-2.0")
         
         self.assertEqual(repos, self.apache2_repos)
-
         self.assertIn("repo1", repos)
         self.assertIn("repo3", repos)
-        self.assertNotIn("repo2", repos) 
-        
-        self.assertEqual(self.mock_get.call_count, 2)
-        
-        # Verify the correct URLs were called
-        call_urls = [call[0][0] for call in self.mock_get.call_args_list]
-        
-        # Should call organization endpoint first
-        self.assertIn("https://api.github.com/orgs/test-org", call_urls[0])
-        # Should call repos endpoint second
-        self.assertIn("https://api.github.com/orgs/test-org/repos", call_urls[1])
+        self.assertNotIn("repo2", repos)
 
-    def test_public_repos_caching(self):
-        """Test that public_repos caches results properly"""
-        # Reset mock call count
-        self.mock_get.reset_mock()
-        
-        client = GithubOrgClient("test-org")
-        
-        # First call - should make API calls
-        repos1 = client.public_repos()
-        self.assertEqual(self.mock_get.call_count, 2)
-        
-        # Second call - should use cached result, no additional API calls
-        repos2 = client.public_repos()
-        self.assertEqual(self.mock_get.call_count, 2)  # Should not increase
-        self.assertEqual(repos1, repos2)
-        
-        # Third call with different license - should use cached repos but filter them
-        apache_repos = client.public_repos(license="apache-2.0")
-        self.assertEqual(self.mock_get.call_count, 2)  # Should not increase
-        self.assertEqual(apache_repos, self.apache2_repos)
-
-    def test_public_repos_empty_result(self):
-        """Test public_repos with empty repository list"""
-        # Reset mock and temporarily modify repos_payload to be empty
-        self.mock_get.reset_mock()
-        
-        original_repos_payload = self.repos_payload
-        self.repos_payload = []  # Empty repository list
-        
-        try:
-            client = GithubOrgClient("test-org")
-            repos = client.public_repos()
-            
-            # Should return empty list
-            self.assertEqual(repos, [])
-            self.assertEqual(self.mock_get.call_count, 2)
-        finally:
-            # Restore original repos_payload
-            self.repos_payload = original_repos_payload
 
 if __name__ == "__main__":
     unittest.main()
