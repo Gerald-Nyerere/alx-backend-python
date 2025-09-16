@@ -209,6 +209,5 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         self.assertIn("repo3", repos)
         self.assertNotIn("repo2", repos)
 
-
 if __name__ == "__main__":
     unittest.main()
