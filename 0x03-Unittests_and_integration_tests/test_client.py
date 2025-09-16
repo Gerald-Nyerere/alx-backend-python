@@ -170,8 +170,8 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up class method to mock get_json"""
-        cls.get_patcher = patch('requests.get')
-        cls.mock_get = cls.get_patcher.start()
+        cls.get_patcher = patch('client.get_json')
+        cls.mock_get_json = cls.get_patcher.start()
 
         def side_effect(url):
             if 'orgs/' in url and '/repos' not in url:
@@ -180,7 +180,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
                 return cls.repos_payload
             return {}
 
-        cls.mock_get.side_effect = side_effect
+        cls.mock_get_json.side_effect = side_effect
 
     @classmethod
     def tearDownClass(cls):
