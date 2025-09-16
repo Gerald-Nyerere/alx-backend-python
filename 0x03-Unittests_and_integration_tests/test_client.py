@@ -90,6 +90,14 @@ class TestGithubOrgClient(unittest.TestCase):
         # Assert: result matches repos_url from fake payload
         self.assertEqual(result, "https://api.github.com/orgs/google/repos")
 
+    @parameterized.expand([
+        ({"license": {"key": "my_license"}}, "my_license", True),
+        ({"license": {"key": "other_license"}}, "my_license", False),
+    ])
+    def test_has_license(self, repo, license_key, expected):
+        """Test that has_license returns correct boolean"""
+        self.assertEqual(GithubOrgClient.has_license(repo, license_key), expected)
+
 
 
 if __name__ == "__main__":
