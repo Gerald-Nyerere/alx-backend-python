@@ -1,25 +1,90 @@
 #!/usr/bin/env python3
+"""Integration tests for GithubOrgClient"""
+
 import unittest
 from unittest.mock import patch, PropertyMock
 from parameterized import parameterized_class
 from parameterized import parameterized
 from client import GithubOrgClient
-from fixtures import TEST_PAYLOAD
 
-# --- Fixtures (from fixtures.py) ---
-org_payload = {
-    "login": "google",
-    "repos_url": "https://api.github.com/orgs/google/repos"
-}
-
-repos_payload = [
-    {"id": 1, "name": "repo1", "license": {"key": "apache-2.0"}},
-    {"id": 2, "name": "repo2", "license": {"key": "other-license"}},
-    {"id": 3, "name": "repo3", "license": {"key": "apache-2.0"}},
+# --- Test Fixtures ---
+TEST_PAYLOAD = [
+    (
+        {
+            "login": "google",
+            "id": 1342004,
+            "url": "https://api.github.com/orgs/google",
+            "repos_url": "https://api.github.com/orgs/google/repos",
+            "name": "Google",
+            "blog": "https://opensource.google.com/",
+            "public_repos": 100
+        },
+        # repos_payload
+        [
+            {
+                "id": 1,
+                "name": "repo1",
+                "full_name": "google/repo1",
+                "private": False,
+                "owner": {
+                    "login": "google",
+                    "id": 1342004
+                },
+                "html_url": "https://github.com/google/repo1",
+                "description": "Google's first repo",
+                "fork": False,
+                "url": "https://api.github.com/repos/google/repo1",
+                "license": {
+                    "key": "apache-2.0",
+                    "name": "Apache License 2.0",
+                    "spdx_id": "Apache-2.0"
+                }
+            },
+            {
+                "id": 2,
+                "name": "repo2",
+                "full_name": "google/repo2",
+                "private": False,
+                "owner": {
+                    "login": "google",
+                    "id": 1342004
+                },
+                "html_url": "https://github.com/google/repo2",
+                "description": "Google's second repo",
+                "fork": False,
+                "url": "https://api.github.com/repos/google/repo2",
+                "license": {
+                    "key": "mit",
+                    "name": "MIT License",
+                    "spdx_id": "MIT"
+                }
+            },
+            {
+                "id": 3,
+                "name": "repo3",
+                "full_name": "google/repo3",
+                "private": False,
+                "owner": {
+                    "login": "google",
+                    "id": 1342004
+                },
+                "html_url": "https://github.com/google/repo3",
+                "description": "Google's third repo",
+                "fork": False,
+                "url": "https://api.github.com/repos/google/repo3",
+                "license": {
+                    "key": "apache-2.0",
+                    "name": "Apache License 2.0",
+                    "spdx_id": "Apache-2.0"
+                }
+            }
+        ],
+        # expected_repos
+        ["repo1", "repo2", "repo3"],
+        # apache2_repos
+        ["repo1", "repo3"]
+    )
 ]
-
-expected_repos = ["repo1", "repo2", "repo3"]
-apache2_repos = ["repo1", "repo3"]
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -76,6 +141,8 @@ class TestGithubOrgClient(unittest.TestCase):
     @parameterized.expand([
         ({"license": {"key": "my_license"}}, "my_license", True),
         ({"license": {"key": "other_license"}}, "my_license", False),
+        ({"license": None}, "my_license", False),
+        ({}, "my_license", False),
     ])
     def test_has_license(self, repo, license_key, expected):
         """Test that has_license returns correct boolean"""
@@ -103,19 +170,20 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         
         def side_effect(url, *args, **kwargs):
             class MockResponse:
-                @staticmethod
-                def json():
-                    if 'orgs/' in url and '/repos' not in url:
-                        return cls.org_payload
-                    elif 'repos' in url:
-                        return cls.repos_payload
-                    return {}
+                def __init__(self, json_data):
+                    self.json_data = json_data
                 
-                @staticmethod
-                def raise_for_status():
+                def json(self):
+                    return self.json_data
+                
+                def raise_for_status(self):
                     pass
             
-            return MockResponse()
+            if 'orgs/' in url and '/repos' not in url:
+                return MockResponse(cls.org_payload)
+            elif 'repos' in url:
+                return MockResponse(cls.repos_payload)
+            return MockResponse({})
         
         cls.mock_get.side_effect = side_effect
 
@@ -132,19 +200,19 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         # Reset mock to isolate this test
         self.mock_get.reset_mock()
         
-        client = GithubOrgClient("test-org")
+        client = GithubOrgClient("google")
         repos = client.public_repos()
         
         # Verify the returned repositories match expected_repos from fixtures
         self.assertEqual(repos, self.expected_repos)
         
-        # Verify API was called correctly
+        # Verify API was called correctly (org call + repos call)
         self.assertEqual(self.mock_get.call_count, 2)
         
         # Verify correct URLs were called
         call_urls = [call[0][0] for call in self.mock_get.call_args_list]
-        self.assertIn("https://api.github.com/orgs/test-org", call_urls[0])
-        self.assertIn("https://api.github.com/orgs/test-org/repos", call_urls[1])
+        self.assertIn("https://api.github.com/orgs/google", call_urls)
+        self.assertIn("https://api.github.com/orgs/google/repos", call_urls)
 
     def test_public_repos_with_license(self):
         """
@@ -154,19 +222,19 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         # Reset mock to isolate this test
         self.mock_get.reset_mock()
         
-        client = GithubOrgClient("test-org")
+        client = GithubOrgClient("google")
         repos = client.public_repos(license="apache-2.0")
         
         # Verify the returned repositories match apache2_repos from fixtures
         self.assertEqual(repos, self.apache2_repos)
         
-        # Verify API was called correctly
+        # Verify API was called correctly (org call + repos call)
         self.assertEqual(self.mock_get.call_count, 2)
         
         # Verify correct URLs were called
         call_urls = [call[0][0] for call in self.mock_get.call_args_list]
-        self.assertIn("https://api.github.com/orgs/test-org", call_urls[0])
-        self.assertIn("https://api.github.com/orgs/test-org/repos", call_urls[1])
+        self.assertIn("https://api.github.com/orgs/google", call_urls)
+        self.assertIn("https://api.github.com/orgs/google/repos", call_urls)
 
 
 if __name__ == "__main__":
