@@ -180,7 +180,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
                 return cls.repos_payload
             return {}
 
-        cls.mock_get_json.side_effect = side_effect
+        cls.mock_get.side_effect = side_effect
 
     @classmethod
     def tearDownClass(cls):
