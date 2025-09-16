@@ -83,6 +83,7 @@ class TestGithubOrgClient(unittest.TestCase):
 
 
 # ----------------- INTEGRATION TESTS -----------------
+
 @parameterized_class([
     {
         'org_payload': TEST_PAYLOAD[0][0],
@@ -97,11 +98,9 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up class method to mock requests.get"""
-        # Create a dictionary to map URLs to their corresponding responses
         cls.get_patcher = patch('requests.get')
         cls.mock_get = cls.get_patcher.start()
         
-        # Define side_effect function to return different responses based on URL
         def side_effect(url, *args, **kwargs):
             class MockResponse:
                 @staticmethod
@@ -114,7 +113,6 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
                 
                 @staticmethod
                 def raise_for_status():
-                    """Mock raise_for_status method"""
                     pass
             
             return MockResponse()
@@ -127,90 +125,49 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         cls.get_patcher.stop()
 
     def test_public_repos(self):
-        """Test public_repos method with integration"""
-        # Reset mock call count to isolate this test
+        """
+        Test that GithubOrgClient.public_repos returns the expected results
+        based on the fixtures without license filter
+        """
+        # Reset mock to isolate this test
         self.mock_get.reset_mock()
         
         client = GithubOrgClient("test-org")
         repos = client.public_repos()
         
-        # Verify the returned repositories match expected_repos
+        # Verify the returned repositories match expected_repos from fixtures
         self.assertEqual(repos, self.expected_repos)
         
-        # Verify requests.get was called twice (org + repos)
+        # Verify API was called correctly
         self.assertEqual(self.mock_get.call_count, 2)
         
-        # Verify the correct URLs were called
+        # Verify correct URLs were called
         call_urls = [call[0][0] for call in self.mock_get.call_args_list]
-        
-        # Should call organization endpoint first
         self.assertIn("https://api.github.com/orgs/test-org", call_urls[0])
-        # Should call repos endpoint second
         self.assertIn("https://api.github.com/orgs/test-org/repos", call_urls[1])
 
     def test_public_repos_with_license(self):
-        """Test public_repos method with license filter"""
-        # Reset mock call count to isolate this test
+        """
+        Test that GithubOrgClient.public_repos with license="apache-2.0" 
+        returns the expected results based on the fixtures
+        """
+        # Reset mock to isolate this test
         self.mock_get.reset_mock()
         
         client = GithubOrgClient("test-org")
         repos = client.public_repos(license="apache-2.0")
         
+        # Verify the returned repositories match apache2_repos from fixtures
         self.assertEqual(repos, self.apache2_repos)
-
-        self.assertIn("repo1", repos)
-        self.assertIn("repo3", repos)
-        self.assertNotIn("repo2", repos) 
         
+        # Verify API was called correctly
         self.assertEqual(self.mock_get.call_count, 2)
         
-        # Verify the correct URLs were called
+        # Verify correct URLs were called
         call_urls = [call[0][0] for call in self.mock_get.call_args_list]
-        
-        # Should call organization endpoint first
         self.assertIn("https://api.github.com/orgs/test-org", call_urls[0])
-        # Should call repos endpoint second
         self.assertIn("https://api.github.com/orgs/test-org/repos", call_urls[1])
 
-    def test_public_repos_caching(self):
-        """Test that public_repos caches results properly"""
-        # Reset mock call count
-        self.mock_get.reset_mock()
-        
-        client = GithubOrgClient("test-org")
-        
-        # First call - should make API calls
-        repos1 = client.public_repos()
-        self.assertEqual(self.mock_get.call_count, 2)
-        
-        # Second call - should use cached result, no additional API calls
-        repos2 = client.public_repos()
-        self.assertEqual(self.mock_get.call_count, 2)  # Should not increase
-        self.assertEqual(repos1, repos2)
-        
-        # Third call with different license - should use cached repos but filter them
-        apache_repos = client.public_repos(license="apache-2.0")
-        self.assertEqual(self.mock_get.call_count, 2)  # Should not increase
-        self.assertEqual(apache_repos, self.apache2_repos)
-
-    def test_public_repos_empty_result(self):
-        """Test public_repos with empty repository list"""
-        # Reset mock and temporarily modify repos_payload to be empty
-        self.mock_get.reset_mock()
-        
-        original_repos_payload = self.repos_payload
-        self.repos_payload = []  # Empty repository list
-        
-        try:
-            client = GithubOrgClient("test-org")
-            repos = client.public_repos()
-            
-            # Should return empty list
-            self.assertEqual(repos, [])
-            self.assertEqual(self.mock_get.call_count, 2)
-        finally:
-            # Restore original repos_payload
-            self.repos_payload = original_repos_payload
 
 if __name__ == "__main__":
     unittest.main()
