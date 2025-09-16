@@ -157,6 +157,10 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         repos = client.public_repos(license="apache-2.0")
         
         self.assertEqual(repos, self.apache2_repos)
+
+        self.assertIn("repo1", repos)
+        self.assertIn("repo3", repos)
+        self.assertNotIn("repo2", repos) 
         
         self.assertEqual(self.mock_get.call_count, 2)
         
