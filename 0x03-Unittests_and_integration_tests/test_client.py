@@ -197,7 +197,6 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         self.assertEqual(self.mock_get_json.call_count, 2)
 
     def test_public_repos_with_license(self):
-        """Test public_repos method with license filter"""
         client = GithubOrgClient("google")
         repos = client.public_repos(license="apache-2.0")
 
