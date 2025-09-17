@@ -33,5 +33,5 @@ class Message(models.Model):
 
 class Conversation(models.Model):
     conversation_id = models.UUIDField(primary_key= True, default=uuid.uuid4, editable=False, unique=True, db_index=True)
-    sender_id = models.ForeignKey(User, to_field='user_id', on_delete=models.CASCADE, related_name="conversation_messages")
+    participants_id= models.ForeignKey(User, to_field='user_id', on_delete=models.CASCADE, related_name="participants")
     created_at  = models.DateTimeField(auto_now_add=True)
