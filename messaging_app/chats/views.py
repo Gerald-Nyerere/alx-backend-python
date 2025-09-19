@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import filters
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -17,6 +18,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
     serializer_class = Conversationserializers
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['participants__email', 'participants__first_name', 'participants__last_name']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at'] 
 
     def get_queryset(self):
         return Conversation.objects.filter(participants=self.request.user)
@@ -34,6 +39,11 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['message_body', 'sender_id__email']
+    ordering_fields = ['sent_at']
+    ordering = ['sent_at'] 
 
     def get_queryset(self):
         conversation_id = self.kwargs.get("conversation_pk")
