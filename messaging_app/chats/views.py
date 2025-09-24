@@ -6,6 +6,8 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsParticipant, IsParticipantOfConversation
+from .filters import MessageFilter
+from .pagination import MessagePagination
 
 from .models import Conversation, Message
 from .serializers import ConversationSerializers, MessageSerializer
@@ -20,7 +22,9 @@ class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializers
     permission_classes = [IsAuthenticated, IsParticipant, IsParticipantOfConversation]
+    pagination_class = MessagePagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = MessageFilter
     search_fields = ['participants__email', 'participants__first_name', 'participants__last_name']
     ordering_fields = ['created_at']
     ordering = ['-created_at'] 
