@@ -1,0 +1,74 @@
+{
+  "info": {
+    "name": "Messaging API Collection",
+    "_postman_id": "12345-abcdef-67890",
+    "description": "Test JWT authentication, conversations, and messages",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Obtain JWT Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user1@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/api/token/", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["api", "token"] }
+      }
+    },
+    {
+      "name": "Create Conversation",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"participants\": [2]\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/api/conversations/", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["api", "conversations"] }
+      }
+    },
+    {
+      "name": "Send Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message_body\": \"Hello! This is a test message.\"\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/api/conversations/1/messages/", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["api", "conversations", "1", "messages"] }
+      }
+    },
+    {
+      "name": "Fetch Messages",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": { "raw": "http://127.0.0.1:8000/api/conversations/1/messages/", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["api", "conversations", "1", "messages"] }
+      }
+    },
+    {
+      "name": "Unauthorized Access Test",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{unauthorized_token}}" }
+        ],
+        "url": { "raw": "http://127.0.0.1:8000/api/conversations/1/messages/", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["api", "conversations", "1", "messages"] }
+      }
+    }
+  ]
+}

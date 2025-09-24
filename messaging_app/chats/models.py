@@ -10,12 +10,12 @@ class User(AbstractUser):
         ('admin', 'admin'),
     ]
 
-    user_id = models.UUIDField(primary_key= True, default=uuid.uuid4, editable=False, unique=True, db_index=True)
+    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True, db_index=True)
     first_name = models.CharField(max_length=255, null=False)
     last_name = models.CharField(max_length=255, null=False)
     email = models.EmailField(max_length=255, unique=True, null=False)
     password_hash = models.CharField(max_length=255, null=False)
-    phone_number = models.IntegerField(null=False)
+    phone_number = models.CharField(max_length=20) 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -33,5 +33,5 @@ class Message(models.Model):
 
 class Conversation(models.Model):
     conversation_id = models.UUIDField(primary_key= True, default=uuid.uuid4, editable=False, unique=True, db_index=True)
-    participants_id= models.ForeignKey(User, to_field='user_id', on_delete=models.CASCADE, related_name="participants")
+    participants = models.ManyToManyField(User, related_name="conversations")
     created_at  = models.DateTimeField(auto_now_add=True)

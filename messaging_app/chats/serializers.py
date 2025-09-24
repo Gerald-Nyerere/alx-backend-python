@@ -38,7 +38,7 @@ class ConversationSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = Conversation
-        fields = ["conversation_id", "participants", "created_at", "messages"]
+        fields = ["conversation_id", "participants", "created_at", "messages", 'participant_count']
 
-        def get_participant_count(self, obj):
-            return obj.participants.count()
+    def get_participant_count(self, obj):
+        return obj.participants.count()
