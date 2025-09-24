@@ -55,8 +55,8 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         conversation_id = self.kwargs.get("conversation_pk")
-        conversation = get_object_or_404(Conversation, conversation_id=conversation_id)
-        return conversation.messages.select_related("sender_id")
+        conversation = get_object_or_404( Conversation.objects.filter(participants=self.request.user), conversation_id=conversation_id)
+        return Message.objects.filter(conversation=conversation).select_related("sender")
 
     def perform_create(self, serializer):
         conversation_id = self.kwargs.get("conversation_pk")
