@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from .permissions import IsParticipant, IsParticipantOfConversation
 
 from .models import Conversation, Message
-from .serializers import Conversationserializers, MessageSerializer
+from .serializers import ConversationSerializers, MessageSerializer
 
 User = settings.AUTH_USER_MODEL
 
@@ -18,7 +18,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     ViewSet for listing, retrieving and creating conversations.
     """
     queryset = Conversation.objects.all()
-    serializer_class = Conversationserializers
+    serializer_class = ConversationSerializers
     permission_classes = [IsAuthenticated, IsParticipant, IsParticipantOfConversation]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['participants__email', 'participants__first_name', 'participants__last_name']
@@ -30,7 +30,13 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, pk=None):
         conversation = get_object_or_404(self.get_queryset(), conversation_id=pk)
+
+        if not self.request.user in conversation.participants.all():
+            return Response({"detail": "You do not have permission to access this conversation."},
+                            status=status.HTTP_403_FORBIDDEN)
+
         serializer = self.get_serializer(conversation)
+        
         return Response(serializer.data)
 
 
@@ -55,4 +61,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         conversation_id = self.kwargs.get("conversation_pk")
         conversation = get_object_or_404(Conversation, conversation_id=conversation_id)
+        if not self.request.user in conversation.participants.all():
+            return Response({"detail": "You do not have permission to send a message in this conversation."},
+                            status=status.HTTP_403_FORBIDDEN)
         serializer.save(sender_id=self.request.user, conversation=conversation)
