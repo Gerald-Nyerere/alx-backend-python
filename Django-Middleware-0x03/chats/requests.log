@@ -1,8 +1,0 @@
-import os
-
-log_file = 'chats/requests.log'
-
-if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
-    print("requests.log exists and is not empty.")
-else:
-    print("requests.log does not exist or is empty.")
