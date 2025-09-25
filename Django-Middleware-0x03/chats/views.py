@@ -1,0 +1,71 @@
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import filters
+from django.shortcuts import get_object_or_404
+from django.conf import settings
+from rest_framework.permissions import IsAuthenticated
+from .permissions import IsParticipant, IsParticipantOfConversation
+from .filters import MessageFilter
+from .pagination import MessagePagination
+
+from .models import Conversation, Message
+from .serializers import ConversationSerializers, MessageSerializer
+
+User = settings.AUTH_USER_MODEL
+
+
+class ConversationViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for listing, retrieving and creating conversations.
+    """
+    queryset = Conversation.objects.all()
+    serializer_class = ConversationSerializers
+    permission_classes = [IsAuthenticated, IsParticipant, IsParticipantOfConversation]
+    pagination_class = MessagePagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = MessageFilter
+    search_fields = ['participants__email', 'participants__first_name', 'participants__last_name']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at'] 
+
+    def get_queryset(self):
+        return Conversation.objects.filter(participants=self.request.user)
+
+    def retrieve(self, request, pk=None):
+        conversation = get_object_or_404(self.get_queryset(), conversation_id=pk)
+
+        if not self.request.user in conversation.participants.all():
+            return Response({"detail": "You do not have permission to access this conversation."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.get_serializer(conversation)
+        
+        return Response(serializer.data)
+
+
+class MessageViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for listing and creating messages for a given conversation.
+    """
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated, IsParticipant, IsParticipantOfConversation]
+
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['message_body', 'sender_id__email']
+    ordering_fields = ['sent_at']
+    ordering = ['sent_at'] 
+
+    def get_queryset(self):
+        conversation_id = self.kwargs.get("conversation_pk")
+        conversation = get_object_or_404( Conversation.objects.filter(participants=self.request.user), conversation_id=conversation_id)
+        return Message.objects.filter(conversation=conversation).select_related("sender")
+
+    def perform_create(self, serializer):
+        conversation_id = self.kwargs.get("conversation_pk")
+        conversation = get_object_or_404(Conversation, conversation_id=conversation_id)
+        if not self.request.user in conversation.participants.all():
+            return Response({"detail": "You do not have permission to send a message in this conversation."},
+                            status=status.HTTP_403_FORBIDDEN)
+        serializer.save(sender_id=self.request.user, conversation=conversation)
