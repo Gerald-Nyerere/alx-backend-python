@@ -2,14 +2,24 @@ from django.db import models
 from django.contrib.auth.models import User
 
 # Create your models here.
+class MessageManager(models.Manager):
+    def unread_for_user(self, user):
+        return (
+            self.filter(receiver=user, read=False).select_related("sender")
+            .only("id", "content", "sender__username", "created_at")
+        )
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_messages")
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_messages")
     parent_message = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies")
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False) 
     edited = models.BooleanField(default=False)
     edited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="edited_messages")
+
+    objects = models.Manager()       
+    unread = MessageManager() 
 
     class Meta:
         ordering = ['-timestamp'] 

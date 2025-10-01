@@ -42,3 +42,12 @@ def inbox(request):
         .prefetch_related("replies__sender", "replies__receiver")
     )
     return render(request, "messaging/inbox.html", {"messages": messages})
+
+@login_required
+def unread_inbox(request):
+    """
+    Show unread messages for the logged-in user.
+    """
+    unread_messages = Message.unread.unread_for_user(request.user)
+
+    return render(request, "messaging/unread_inbox.html", {"unread_messages": unread_messages})
