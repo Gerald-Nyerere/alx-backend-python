@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
+from django.views.decorators.cache import cache_page
 from django.contrib.auth.decorators import login_required
 from .models import Message
 
@@ -72,7 +73,25 @@ def read_message(request, message_id):
     return render(request, "messaging/read_message.html", {"message": message})
 
 
+@login_required
+@cache_page(60)   # ✅ cache this view for 60 seconds
+def conversation_view(request, user_id):
+    """
+    Displays the conversation between the logged-in user and another user.
+    Cached for 60 seconds to reduce DB hits.
+    """
+    other_user_messages = Message.objects.filter(
+        receiver=request.user, sender_id=user_id
+    ).select_related("sender", "receiver")
 
+    my_messages = Message.objects.filter(
+        sender=request.user, receiver_id=user_id
+    ).select_related("sender", "receiver")
+
+    # Combine and order by creation time
+    conversation = (other_user_messages | my_messages).order_by("created_at")
+
+    return render(request, "messaging/conversation.html", {"conversation": conversation})
 
 
 
