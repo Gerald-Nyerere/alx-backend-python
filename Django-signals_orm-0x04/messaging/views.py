@@ -51,3 +51,26 @@ def unread_inbox(request):
     unread_messages = Message.unread.unread_for_user(request.user)
 
     return render(request, "messaging/unread_inbox.html", {"unread_messages": unread_messages})
+
+
+@login_required
+def read_message(request, message_id):
+    """
+    Mark a message as read when a receiver opens it.
+    Use update_fields for an efficient update.
+    """
+    message = get_object_or_404(Message, id=message_id, receiver=request.user)
+    if not message.read:
+        message.read = True
+        message.save(update_fields=["read"])
+    return render(request, "messaging/read_message.html", {"message": message})
+
+
+
+
+
+
+
+
+
+
