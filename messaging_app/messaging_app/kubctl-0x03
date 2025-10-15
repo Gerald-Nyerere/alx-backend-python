@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+
+DEPLOYMENT="messaging-app-blue"
+SERVICE_URL="http://localhost:8000"
+
+echo "🚀 Applying updated deployment (Rolling Update)..."
+kubectl apply -f blue_deployment.yaml
+
+echo "🔄 Monitoring rollout status..."
+kubectl rollout status deployment/$DEPLOYMENT
+
+echo "🧠 Verifying running pods after update..."
+kubectl get pods -l app=messaging-app -l version=blue
+
+echo "🌐 Starting curl test to check for downtime..."
+echo "Press Ctrl+C to stop monitoring."
+
+while true; do
+  if curl -s --max-time 2 $SERVICE_URL > /dev/null; then
+    echo "✅ App is responding (no downtime detected)"
+  else
+    echo "❌ App not responding (possible downtime)"
+  fi
+  sleep 2
+done
