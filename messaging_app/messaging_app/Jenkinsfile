@@ -1,49 +1,31 @@
 pipeline {
     agent any
 
-    environment {
-        GITHUB_CREDENTIALS = 'github-creds'
-    }
-
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: "${GITHUB_CREDENTIALS}",
-                    url: 'https://github.com/yourusername/messaging-app.git'
+                    credentialsId: 'github-credentials-id',
+                    url: 'https://github.com/your-username/messaging_app.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh '''
-                python3 -m venv venv
-                . venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
-                '''
+                sh 'pip3 install -r messaging_app/requirements.txt'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh '''
-                . venv/bin/activate
-                pytest --junitxml=reports/results.xml
-                '''
+                sh 'pytest --junitxml=report.xml'
             }
         }
 
-        stage('Publish Test Report') {
+        stage('Archive Test Results') {
             steps {
-                junit 'reports/results.xml'
+                junit 'report.xml'
             }
-        }
-    }
-
-    post {
-        always {
-            echo "Pipeline finished!"
         }
     }
 }
